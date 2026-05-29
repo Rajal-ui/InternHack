@@ -1068,10 +1068,10 @@ async function seedInterviewExperiences() {
   for (const e of experiences) {
     const existing = await prisma.interviewExperience.findFirst({
       where: {
-  companyId: companyMap[e.companyName]!,
-  role: e.role,
-  userId: student.id,
-},
+        companyId: companyMap[e.companyName]!,
+        role: e.role,
+        userId: student.id,
+      },
     });
     if (!existing) {
       await prisma.interviewExperience.create({
@@ -1380,6 +1380,62 @@ async function seedBlogPosts() {
   }
   log("Blog Posts", count);
 }
+async function seedGsocOrgs() {
+  const orgs = [
+    {
+      name: "Apache Software Foundation",
+      slug: "apache",
+      url: "https://apache.org",
+      description: "A wide variety of open source projects.",
+      category: "Software",
+      projectsData: {
+        "2026": [{ title: "Optimization", studentName: "Student A" }, { title: "Next-Gen UI", studentName: "Student B" }],
+        "2025": [{ title: "Migration", studentName: "Student C" }],
+        "2024": [{ title: "Kernel Patching", studentName: "Student D" }, { title: "Documentation", studentName: "Student E" }]
+      }
+    },
+    {
+      name: "Python Software Foundation",
+      slug: "python",
+      url: "https://python.org",
+      description: "Core Python development and scientific libraries.",
+      category: "AI/Data",
+      projectsData: {
+        "2026": [{ title: "Asyncio improvements", studentName: "Student F" }],
+        "2025": [{ title: "Type hints", studentName: "Student G" }, { title: "Memory profiling", studentName: "Student H" }]
+      }
+    },
+    {
+      name: "Mozilla",
+      slug: "mozilla",
+      url: "https://mozilla.org",
+      description: "Building a better, more open internet.",
+      category: "Web",
+      projectsData: {
+        "2026": [{ title: "Firefox accessibility", studentName: "Student I" }],
+        "2025": [], // Test empty year
+        "2024": [{ title: "Privacy tools", studentName: "Student J" }]
+      }
+    },
+    {
+      name: "New Org (No History)",
+      slug: "new-org",
+      url: "https://neworg.org",
+      description: "A fresh organization with no past projects yet.",
+      category: "Other",
+      projectsData: {} // Test empty object
+    }
+  ];
+
+  for (const org of orgs) {
+    await prisma.gsocOrganization.upsert({
+      where: { slug: org.slug },
+      update: { projectsData: org.projectsData },
+      create: org,
+    });
+  }
+  console.log("  ✓ GSoC Organizations seeded with test data.");
+}
 
 // ─── Main ─────────────────────────────────────────────────────────────
 async function main() {
@@ -1400,7 +1456,7 @@ async function main() {
   await seedYCCompanies();
   await seedProfessors();
   await seedBlogPosts();
-
+  await seedGsocOrgs();
   console.log("\n✅ Seed complete!\n");
 }
 
