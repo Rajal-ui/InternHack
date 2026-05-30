@@ -469,6 +469,7 @@ async function seedOpensourceRepos() {
     { name: "flutter", owner: "flutter", description: "Google's UI toolkit for building natively compiled applications.", language: "Dart", techStack: ["Dart", "Skia", "C++"], difficulty: "INTERMEDIATE" as const, domain: "MOBILE" as const, stars: 163000, forks: 27000, openIssues: 12000, url: "https://github.com/flutter/flutter", tags: ["mobile", "cross-platform", "ui"] },
     { name: "prisma", owner: "prisma", description: "Next-generation ORM for Node.js and TypeScript.", language: "TypeScript", techStack: ["TypeScript", "Rust", "PostgreSQL"], difficulty: "BEGINNER" as const, domain: "WEB" as const, stars: 39000, forks: 1500, openIssues: 3000, url: "https://github.com/prisma/prisma", tags: ["orm", "database", "typescript"] },
     { name: "scikit-learn", owner: "scikit-learn", description: "Machine learning in Python.", language: "Python", techStack: ["Python", "NumPy", "Cython"], difficulty: "INTERMEDIATE" as const, domain: "AI" as const, stars: 59000, forks: 25000, openIssues: 2300, url: "https://github.com/scikit-learn/scikit-learn", tags: ["ml", "data-science", "python"] },
+    { name: "pandas", owner: "pandas-dev", description: "Flexible and powerful data analysis / manipulation library for Python.", language: "Python", techStack: ["Python", "Cython", "NumPy"], difficulty: "INTERMEDIATE" as const, domain: "DATA" as const, stars: 40000, forks: 16000, openIssues: 3000, url: "https://github.com/pandas-dev/pandas", tags: ["data-analysis", "pandas", "python"] },
   ];
 
   let count = 0;
@@ -1068,10 +1069,10 @@ async function seedInterviewExperiences() {
   for (const e of experiences) {
     const existing = await prisma.interviewExperience.findFirst({
       where: {
-        companyId: companyMap[e.companyName]!,
-        role: e.role,
-        userId: student.id,
-      },
+  companyId: companyMap[e.companyName]!,
+  role: e.role,
+  userId: student.id,
+},
     });
     if (!existing) {
       await prisma.interviewExperience.create({
@@ -1380,61 +1381,64 @@ async function seedBlogPosts() {
   }
   log("Blog Posts", count);
 }
+
 async function seedGsocOrgs() {
   const orgs = [
     {
       name: "Apache Software Foundation",
       slug: "apache",
       url: "https://apache.org",
-      description: "A wide variety of open source projects.",
-      category: "Software",
-      projectsData: {
-        "2026": [{ title: "Optimization", studentName: "Student A" }, { title: "Next-Gen UI", studentName: "Student B" }],
-        "2025": [{ title: "Migration", studentName: "Student C" }],
-        "2024": [{ title: "Kernel Patching", studentName: "Student D" }, { title: "Documentation", studentName: "Student E" }]
-      }
+      description: "The Apache Software Foundation provides support for the Apache community of open-source software projects.",
+      category: "Software Foundation",
+      technologies: ["Java", "Python", "C++", "Scala"],
+      yearsParticipated: [2021, 2022, 2023, 2024],
+      totalProjects: 100,
+      projectsData: [
+        { year: 2024, title: "Apache Kafka Stream Processing", studentName: "Rahul Sharma" },
+        { year: 2024, title: "Apache Flink Optimization", studentName: "Priya Patel" },
+        { year: 2023, title: "Apache Spark ML Pipeline", studentName: "Arjun Singh" },
+        { year: 2023, title: "Apache Cassandra Driver", studentName: "Sneha Kumar" },
+        { year: 2022, title: "Apache Hadoop YARN", studentName: "Vikram Nair" },
+        { year: 2021, title: "Apache Beam Runner", studentName: "Ananya Roy" },
+      ],
+      ideasUrl: "https://community.apache.org/gsoc.html",
+      guideUrl: "https://community.apache.org/gsoc/guide.html",
     },
     {
       name: "Python Software Foundation",
       slug: "python",
       url: "https://python.org",
-      description: "Core Python development and scientific libraries.",
-      category: "AI/Data",
-      projectsData: {
-        "2026": [{ title: "Asyncio improvements", studentName: "Student F" }],
-        "2025": [{ title: "Type hints", studentName: "Student G" }, { title: "Memory profiling", studentName: "Student H" }]
-      }
+      description: "The Python Software Foundation (PSF) is a non-profit organization devoted to the Python programming language.",
+      category: "Programming Languages",
+      technologies: ["Python", "C", "Rust"],
+      yearsParticipated: [2021, 2022, 2023, 2024],
+      totalProjects: 80,
+      projectsData: [
+        { year: 2024, title: "CPython Memory Profiler", studentName: "Amit Kumar" },
+        { year: 2024, title: "PyPI Security Enhancements", studentName: "Sanya Gupta" },
+        { year: 2023, title: "Django Async Support", studentName: "Rohan Joshi" },
+        { year: 2023, title: "Numpy BLAS Integration", studentName: "Ishita Rao" },
+        { year: 2022, title: "Pandas Performance Tuning", studentName: "Karan Singh" },
+      ],
+      ideasUrl: "https://wiki.python.org/moin/SummerOfCode/2024",
+      guideUrl: "https://wiki.python.org/moin/SummerOfCode/ContributorGuide",
     },
-    {
-      name: "Mozilla",
-      slug: "mozilla",
-      url: "https://mozilla.org",
-      description: "Building a better, more open internet.",
-      category: "Web",
-      projectsData: {
-        "2026": [{ title: "Firefox accessibility", studentName: "Student I" }],
-        "2025": [], // Test empty year
-        "2024": [{ title: "Privacy tools", studentName: "Student J" }]
-      }
-    },
-    {
-      name: "New Org (No History)",
-      slug: "new-org",
-      url: "https://neworg.org",
-      description: "A fresh organization with no past projects yet.",
-      category: "Other",
-      projectsData: {} // Test empty object
-    }
   ];
 
+  let count = 0;
   for (const org of orgs) {
-    await prisma.gsocOrganization.upsert({
-      where: { slug: org.slug },
-      update: { projectsData: org.projectsData },
-      create: org,
-    });
+    const existing = await prisma.gsocOrganization.findUnique({ where: { slug: org.slug } });
+    if (!existing) {
+      await prisma.gsocOrganization.create({ data: org });
+      count++;
+    } else {
+      await prisma.gsocOrganization.update({
+        where: { slug: org.slug },
+        data: org,
+      });
+    }
   }
-  console.log("  ✓ GSoC Organizations seeded with test data.");
+  log("GSoC Organizations", count);
 }
 
 // ─── Main ─────────────────────────────────────────────────────────────
