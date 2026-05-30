@@ -5,14 +5,17 @@ import {
   opensourceListQuerySchema,
   repoIdSchema,
   submitRepoRequestSchema,
+  gsocOrgsQuerySchema,
 } from "./opensource.validation.js";
 import { authMiddleware } from "../../middleware/auth.middleware.js";
 import { requireRole } from "../../middleware/role.middleware.js";
 import { sendEmail } from "../../utils/email.utils.js";
 import { repoRequestSubmittedHtml, repoRequestApprovedHtml } from "../../utils/email-templates.js";
 import { parsePagination } from "../../utils/pagination.utils.js";
+import { OpensourceController } from "./opensource.controller.js";
 
 export const opensourceRouter = Router();
+const controller = new OpensourceController();
 
 function addMonthsUTC(date: Date, months: number): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + months, 1));
@@ -27,6 +30,9 @@ function getMonthKeyUTC(date: Date): string {
 function getMonthLabelUTC(date: Date): string {
   return new Intl.DateTimeFormat("en-US", { month: "short", year: "numeric", timeZone: "UTC" }).format(date);
 }
+
+// Public: list GSoC organizations
+opensourceRouter.get("/gsoc/orgs", (req, res, next) => controller.getGsocOrgs(req, res, next));
 
 // Public: list repos with optional filters
 opensourceRouter.get("/", async (req, res, next) => {

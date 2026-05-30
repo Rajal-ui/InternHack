@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -21,7 +21,6 @@ import {
 } from "lucide-react";
 import api from "../../../lib/axios";
 import { queryKeys } from "../../../lib/query-keys";
-import { LoadingScreen } from "../../../components/LoadingScreen";
 import { PaginationControls } from "../../../components/ui/PaginationControls";
 import { SEO } from "../../../components/SEO";
 import { canonicalUrl } from "../../../lib/seo.utils";
@@ -141,6 +140,28 @@ function FilterDropdown({
             </button>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function GSoCOrgCardSkeleton() {
+  return (
+    <div className="rounded-md border border-stone-200 bg-white p-5 animate-pulse dark:border-white/10 dark:bg-stone-900">
+      <div className="mb-3 flex items-start gap-3">
+        <div className="h-10 w-10 shrink-0 rounded-md bg-stone-100 dark:bg-stone-800" />
+        <div className="flex-1 space-y-2">
+          <div className="h-4 w-3/4 rounded bg-stone-100 dark:bg-stone-800" />
+          <div className="h-3 w-1/3 rounded bg-stone-100 dark:bg-stone-800" />
+        </div>
+      </div>
+      <div className="mb-4 space-y-2">
+        <div className="h-3 w-full rounded bg-stone-100 dark:bg-stone-800" />
+        <div className="h-3 w-5/6 rounded bg-stone-100 dark:bg-stone-800" />
+      </div>
+      <div className="flex gap-2">
+        <div className="h-6 w-16 rounded bg-stone-100 dark:bg-stone-800" />
+        <div className="h-6 w-16 rounded bg-stone-100 dark:bg-stone-800" />
       </div>
     </div>
   );
@@ -448,26 +469,15 @@ function GSoCOrgModal({ org, onClose, githubRepos, gsocPageUrl, reposLoading }: 
 }
 
 export default function GSoCReposPage() {
-  const [search, setSearch] = useState("");
-  const [debouncedSearch, setDebouncedSearch] = useState("");
-  const [selectedCategory, setSelectedCategory] = useState("All");
-  const [selectedTech, setSelectedTech] = useState("All");
-  const [selectedYear, setSelectedYear] = useState("All");
-  const [page, setPage] = useState(1);
+  const [queryParams, setQueryParams] = useState({
+    page: 1,
+    search: "",
+    category: "",
+    tech: "",
+    year: "",
+  });
+  const [searchInputValue, setSearchInputValue] = useState("");
   const [selectedOrg, setSelectedOrg] = useState<GSoCOrganization | null>(null);
-  const [timer, setTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
-  const limit = 18;
-
-  const handleSearch = (value: string) => {
-    setSearch(value);
-    if (timer) clearTimeout(timer);
-    setTimer(
-      setTimeout(() => {
-        setDebouncedSearch(value);
-        setPage(1);
-      }, 400)
-    );
-  };
 
   const { data: stats } = useQuery<GSoCStats>({
     queryKey: queryKeys.gsoc.stats(),
@@ -475,19 +485,29 @@ export default function GSoCReposPage() {
     staleTime: Infinity,
   });
 
-  const params: Record<string, string | number> = { page, limit };
-  if (debouncedSearch) params.search = debouncedSearch;
-  if (selectedCategory !== "All") params.category = selectedCategory;
-  if (selectedTech !== "All") params.technology = selectedTech;
-  if (selectedYear !== "All") params.year = parseInt(selectedYear, 10);
-
-  const { data, isLoading } = useQuery({
-    queryKey: queryKeys.gsoc.list(params),
-    queryFn: () => api.get("/gsoc/organizations", { params }).then((res) => res.data),
+  const { data, isLoading, isFetching } = useQuery({
+    queryKey: ["gsoc-orgs", queryParams],
+    queryFn: () =>
+      api.get("/opensource/gsoc/orgs", { params: queryParams }).then((res) => res.data),
+    placeholderData: (previousData) => previousData,
+    staleTime: 5 * 60 * 1000,
   });
 
-  const organizations: GSoCOrganization[] = data?.organizations ?? [];
-  const pagination = data?.pagination ?? { page: 1, total: 0, totalPages: 1 };
+  const organizations: GSoCOrganization[] = data?.orgs ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = data?.totalPages ?? 1;
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, [queryParams.page]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setQueryParams((prev) => ({ ...prev, search: searchInputValue, page: 1 }));
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [searchInputValue]);
+
 
   const { data: detailData } = useQuery({
     queryKey: queryKeys.gsoc.detail(selectedOrg?.slug ?? ""),
@@ -509,16 +529,17 @@ export default function GSoCReposPage() {
   const yearOptions = ["All", ...(stats?.years.map((year) => String(year.year)) ?? [])];
   const techOptions = ["All", ...(stats?.technologies.slice(0, 30).map((tech) => tech.name) ?? [])];
 
-  const hasFilters =
-    Boolean(debouncedSearch) || selectedCategory !== "All" || selectedTech !== "All" || selectedYear !== "All";
+  const hasFilters = Boolean(queryParams.search || queryParams.category || queryParams.tech || queryParams.year);
 
   const clearFilters = () => {
-    setSearch("");
-    setDebouncedSearch("");
-    setSelectedCategory("All");
-    setSelectedTech("All");
-    setSelectedYear("All");
-    setPage(1);
+    setSearchInputValue("");
+    setQueryParams({
+      page: 1,
+      search: "",
+      category: "",
+      tech: "",
+      year: "",
+    });
   };
 
   return (
@@ -573,8 +594,8 @@ export default function GSoCReposPage() {
             <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-stone-400" />
             <input
               type="text"
-              value={search}
-              onChange={(event) => handleSearch(event.target.value)}
+              value={searchInputValue}
+              onChange={(event) => setSearchInputValue(event.target.value)}
               placeholder="Search organizations, technologies, topics..."
               className="w-full rounded-md border border-stone-300 bg-white py-3 pl-11 pr-4 text-sm text-stone-900 transition-colors placeholder:text-stone-400 focus:border-lime-400 focus:outline-none dark:border-white/10 dark:bg-stone-900 dark:text-stone-50 dark:placeholder:text-stone-600"
             />
@@ -582,31 +603,28 @@ export default function GSoCReposPage() {
           <FilterDropdown
             icon={<Globe className="h-3.5 w-3.5" />}
             label="category"
-            value={selectedCategory}
+            value={queryParams.category || "All"}
             options={categoryOptions}
             onChange={(value) => {
-              setSelectedCategory(value);
-              setPage(1);
+              setQueryParams((prev) => ({ ...prev, category: value === "All" ? "" : value, page: 1 }));
             }}
           />
           <FilterDropdown
             icon={<Calendar className="h-3.5 w-3.5" />}
             label="year"
-            value={selectedYear}
+            value={String(queryParams.year) || "All"}
             options={yearOptions}
             onChange={(value) => {
-              setSelectedYear(value);
-              setPage(1);
+              setQueryParams((prev) => ({ ...prev, year: value === "All" ? "" : value, page: 1 }));
             }}
           />
           <FilterDropdown
             icon={<Code2 className="h-3.5 w-3.5" />}
             label="tech"
-            value={selectedTech}
+            value={queryParams.tech || "All"}
             options={techOptions}
             onChange={(value) => {
-              setSelectedTech(value);
-              setPage(1);
+              setQueryParams((prev) => ({ ...prev, tech: value === "All" ? "" : value, page: 1 }));
             }}
           />
           {hasFilters && (
@@ -623,44 +641,69 @@ export default function GSoCReposPage() {
 
         <div className="mb-4 flex items-center justify-between">
           <p className="text-[10px] font-mono uppercase tracking-widest text-stone-500 dark:text-stone-400">
-            <span className="text-stone-900 dark:text-stone-50">{pagination.total}</span> organizations
-            {hasFilters && (
+            <span className="text-stone-900 dark:text-stone-50">{total}</span> organizations
+            {(queryParams.search || queryParams.category || queryParams.tech || queryParams.year) && (
               <>
                 {" "} / <span className="text-stone-900 dark:text-stone-50">filtered</span>
               </>
             )}
-            {pagination.totalPages > 1 && <> / page {pagination.page} of {pagination.totalPages}</>}
+            {totalPages > 1 && <> / page {queryParams.page} of {totalPages}</>}
           </p>
         </div>
 
         {isLoading ? (
-          <LoadingScreen compact />
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <GSoCOrgCardSkeleton key={i} />
+            ))}
+          </div>
         ) : organizations.length === 0 ? (
           <EmptyState />
         ) : (
-          <motion.div layout className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
-            <AnimatePresence mode="popLayout">
-              {organizations.map((org, index) => (
+          <div className="relative">
+            <AnimatePresence>
+              {isFetching && (
                 <motion.div
-                  key={org.id}
-                  layout
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.95 }}
-                  transition={{ delay: index * 0.02, duration: 0.25 }}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="absolute inset-0 z-10 flex items-start justify-center bg-white/20 pt-20 backdrop-blur-[1px] dark:bg-stone-950/20"
                 >
-                  <GSoCOrgCard org={org} onClick={() => setSelectedOrg(org)} />
+                  <div className="flex items-center gap-2 rounded-md bg-stone-900 px-4 py-2 text-[10px] font-mono uppercase tracking-[0.2em] text-lime-400 shadow-2xl dark:bg-stone-50 dark:text-stone-900">
+                    <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-lime-400" />
+                    Updating Results
+                  </div>
                 </motion.div>
-              ))}
+              )}
             </AnimatePresence>
-          </motion.div>
+
+            <motion.div
+              layout
+              className={`grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3 transition-opacity duration-300 ${isFetching ? "opacity-40" : "opacity-100"}`}
+            >
+              <AnimatePresence mode="popLayout">
+                {organizations.map((org, index) => (
+                  <motion.div
+                    key={org.id}
+                    layout
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ delay: index * 0.02, duration: 0.25 }}
+                  >
+                    <GSoCOrgCard org={org} onClick={() => setSelectedOrg(org)} />
+                  </motion.div>
+                ))}
+              </AnimatePresence>
+            </motion.div>
+          </div>
         )}
 
         <PaginationControls
-          currentPage={page}
-          totalPages={pagination.totalPages}
-          onPageChange={setPage}
-          showingInfo={{ total: pagination.total, limit }}
+          currentPage={queryParams.page}
+          totalPages={totalPages}
+          onPageChange={(page) => setQueryParams((prev) => ({ ...prev, page }))}
+          showingInfo={{ total, limit: 24 }}
         />
 
       </div>
