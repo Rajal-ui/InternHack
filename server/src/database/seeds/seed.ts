@@ -1393,14 +1393,22 @@ async function seedGsocOrgs() {
       technologies: ["Java", "Python", "C++", "Scala"],
       yearsParticipated: [2021, 2022, 2023, 2024],
       totalProjects: 100,
-      projectsData: [
-        { year: 2024, title: "Apache Kafka Stream Processing", studentName: "Rahul Sharma" },
-        { year: 2024, title: "Apache Flink Optimization", studentName: "Priya Patel" },
-        { year: 2023, title: "Apache Spark ML Pipeline", studentName: "Arjun Singh" },
-        { year: 2023, title: "Apache Cassandra Driver", studentName: "Sneha Kumar" },
-        { year: 2022, title: "Apache Hadoop YARN", studentName: "Vikram Nair" },
-        { year: 2021, title: "Apache Beam Runner", studentName: "Ananya Roy" },
-      ],
+      projectsData: {
+        "2024": { num_projects: 2, projects: [
+          { title: "Apache Kafka Stream Processing", student_name: "Rahul Sharma" },
+          { title: "Apache Flink Optimization", student_name: "Priya Patel" },
+        ]},
+        "2023": { num_projects: 2, projects: [
+          { title: "Apache Spark ML Pipeline", student_name: "Arjun Singh" },
+          { title: "Apache Cassandra Driver", student_name: "Sneha Kumar" },
+        ]},
+        "2022": { num_projects: 1, projects: [
+          { title: "Apache Hadoop YARN", student_name: "Vikram Nair" },
+        ]},
+        "2021": { num_projects: 1, projects: [
+          { title: "Apache Beam Runner", student_name: "Ananya Roy" },
+        ]},
+      },
       ideasUrl: "https://community.apache.org/gsoc.html",
       guideUrl: "https://community.apache.org/gsoc/guide.html",
     },
@@ -1413,13 +1421,19 @@ async function seedGsocOrgs() {
       technologies: ["Python", "C", "Rust"],
       yearsParticipated: [2021, 2022, 2023, 2024],
       totalProjects: 80,
-      projectsData: [
-        { year: 2024, title: "CPython Memory Profiler", studentName: "Amit Kumar" },
-        { year: 2024, title: "PyPI Security Enhancements", studentName: "Sanya Gupta" },
-        { year: 2023, title: "Django Async Support", studentName: "Rohan Joshi" },
-        { year: 2023, title: "Numpy BLAS Integration", studentName: "Ishita Rao" },
-        { year: 2022, title: "Pandas Performance Tuning", studentName: "Karan Singh" },
-      ],
+      projectsData: {
+        "2024": { num_projects: 2, projects: [
+          { title: "CPython Memory Profiler", student_name: "Amit Kumar" },
+          { title: "PyPI Security Enhancements", student_name: "Sanya Gupta" },
+        ]},
+        "2023": { num_projects: 2, projects: [
+          { title: "Django Async Support", student_name: "Rohan Joshi" },
+          { title: "Numpy BLAS Integration", student_name: "Ishita Rao" },
+        ]},
+        "2022": { num_projects: 1, projects: [
+          { title: "Pandas Performance Tuning", student_name: "Karan Singh" },
+        ]},
+      },
       ideasUrl: "https://wiki.python.org/moin/SummerOfCode/2024",
       guideUrl: "https://wiki.python.org/moin/SummerOfCode/ContributorGuide",
     },
@@ -1473,7 +1487,7 @@ async function seedRepoRequests() {
           description: repo.description,
           language: repo.language,
           url: repo.url,
-          domain: domains[i % domains.length],
+          domain: repo.domain,
           difficulty: repo.difficulty,
           status: "APPROVED",
           userId: student.id,

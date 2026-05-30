@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useState, useRef, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -214,10 +214,17 @@ function GSoCOrgModal({ org, onClose, githubRepos, gsocPageUrl, reposLoading }: 
   const activeYear = selectedYear || (years[0] ? String(years[0]) : null);
   const yearData = activeYear && org.projectsData ? org.projectsData[activeYear] : null;
 
-  const handleCopy = (url: string, field: string) => {
-    navigator.clipboard.writeText(url);
-    setCopiedField(field);
-    setTimeout(() => setCopiedField(null), 1500);
+  const copyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleCopy = async (url: string, field: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      if (copyTimerRef.current) clearTimeout(copyTimerRef.current);
+      setCopiedField(field);
+      copyTimerRef.current = setTimeout(() => setCopiedField(null), 1500);
+    } catch {
+      // silently fail — clipboard permission denied or unavailable
+    }
   };
 
   const handleClose = () => {
