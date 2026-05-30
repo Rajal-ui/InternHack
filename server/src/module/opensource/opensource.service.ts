@@ -27,14 +27,25 @@ export class OpensourceService {
       .sort((a, b) => a.localeCompare(b));
   }
 
-  async listRepos(query: any) {
-    const { page, limit, search, language, difficulty, domain, sortBy, sortOrder } = query;
+async listRepos(query: any) {
+    const { 
+      page = 1, 
+      limit = 18, 
+      search, 
+      language, 
+      difficulty, 
+      domain, 
+      sortBy = "name", 
+      sortOrder = "asc" 
+    } = query;
+    
     const skip = (page - 1) * limit;
 
     const where: any = {};
-    if (language) where.language = language;
-    if (difficulty) where.difficulty = difficulty;
-    if (domain) where.domain = domain;
+    if (language && language !== "All") where.language = language;
+    if (difficulty && difficulty !== "All") where.difficulty = difficulty;
+    if (domain && domain !== "All") where.domain = domain;
+    
     if (search) {
       where.OR = [
         { name: { contains: search, mode: "insensitive" } },
@@ -56,9 +67,15 @@ export class OpensourceService {
 
     return {
       repos,
-      pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      pagination: { 
+        total, 
+        page, 
+        limit, 
+        totalPages: Math.ceil(total / limit) 
+      },
     };
   }
+}}
 
   async getStudentAnalytics(userId: number) {
     const now = new Date();
@@ -163,6 +180,39 @@ export class OpensourceService {
       total,
       page,
       totalPages: Math.ceil(total / limit),
+    };
+  }
+
+  async listRepos(query: any) {
+    const { page, limit, search, language, difficulty, domain, sortBy, sortOrder } = query;
+    const skip = (page - 1) * limit;
+
+    const where: any = {};
+    if (language) where.language = language;
+    if (difficulty) where.difficulty = difficulty;
+    if (domain) where.domain = domain;
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { owner: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } },
+        { tags: { hasSome: [search] } },
+      ];
+    }
+
+    const [repos, total] = await Promise.all([
+      prisma.opensourceRepo.findMany({
+        where,
+        skip,
+        take: limit,
+        orderBy: { [sortBy]: sortOrder },
+      }),
+      prisma.opensourceRepo.count({ where }),
+    ]);
+
+    return {
+      repos,
+      pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
     };
   }
 }
